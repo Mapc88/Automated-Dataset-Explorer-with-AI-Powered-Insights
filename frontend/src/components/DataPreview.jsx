@@ -10,8 +10,8 @@ export default function DataPreview({ file, preview, columns, shape, onAnalyze, 
           <div>
             <p className="font-semibold text-slate-100 leading-tight">{file.name}</p>
             <p className="text-xs text-slate-400 mt-0.5">
-              {(file.size / 1024 / 1024).toFixed(2)} MB &nbsp;·&nbsp;
-              {shape[0].toLocaleString()} rows &nbsp;·&nbsp; {shape[1]} columns
+              {(file.size / 1024 / 1024).toFixed(2)} MB &nbsp;|&nbsp;
+              {shape[0].toLocaleString()} rows &nbsp;|&nbsp; {shape[1]} columns
             </p>
           </div>
         </div>
@@ -23,7 +23,7 @@ export default function DataPreview({ file, preview, columns, shape, onAnalyze, 
           {analyzing ? (
             <>
               <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-              Analyzing…
+              Analyzing...
             </>
           ) : (
             <>

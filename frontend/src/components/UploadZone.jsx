@@ -54,7 +54,7 @@ export default function UploadZone({ onFileAccepted }) {
             or{" "}
             <span className="text-brand-500 underline underline-offset-2">browse files</span>
           </p>
-          <p className="text-xs text-slate-500 mt-3">CSV · XLSX · XLS &nbsp;·&nbsp; max 50 MB</p>
+          <p className="text-xs text-slate-500 mt-3">CSV, XLSX, XLS (max 50 MB)</p>
         </div>
       </div>
 

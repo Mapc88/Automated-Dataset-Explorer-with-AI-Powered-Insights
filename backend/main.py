@@ -15,7 +15,7 @@ from insights import generate_insights
 
 load_dotenv()
 
-app = FastAPI(title="DataLens API", version="1.0.0")
+app = FastAPI(title="Dataset Analysis API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,7 +40,7 @@ def _load_dataframe(filename: str, contents: bytes) -> pd.DataFrame:
                 return pd.read_csv(io.BytesIO(contents), encoding=enc, low_memory=False)
             except UnicodeDecodeError:
                 continue
-        raise HTTPException(400, "Could not decode CSV file – try saving as UTF-8.")
+        raise HTTPException(400, "Could not decode CSV file - try saving as UTF-8.")
     else:
         return pd.read_excel(io.BytesIO(contents), engine="openpyxl")
 
@@ -92,7 +92,7 @@ async def analyze_file(file: UploadFile = File(...)):
         traceback.print_exc()
         raise HTTPException(500, f"Analysis failed: {e}")
 
-    # AI insights (gracefully degrade if API key missing)
+    # generate insights; skip if unavailable
     insights = {"raw": "", "sections": {}}
     try:
         insights = generate_insights(result)

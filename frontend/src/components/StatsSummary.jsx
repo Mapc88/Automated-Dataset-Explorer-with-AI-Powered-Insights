@@ -50,8 +50,8 @@ export default function StatsSummary({ summary, cleaning, topCorrs, outliers }) 
         <Stat
           icon={TrendingUp}
           label="Top correlation"
-          value={topCorr ? Math.abs(topCorr.r).toFixed(2) : "—"}
-          sub={topCorr ? `${topCorr.col1} ↔ ${topCorr.col2}` : ""}
+          value={topCorr ? Math.abs(topCorr.r).toFixed(2) : "-"}
+          sub={topCorr ? `${topCorr.col1} / ${topCorr.col2}` : ""}
         />
       </div>
 
@@ -84,7 +84,7 @@ export default function StatsSummary({ summary, cleaning, topCorrs, outliers }) 
             {topCorrs.slice(0, 6).map((p, i) => (
               <div key={i} className="flex items-center gap-3 text-sm">
                 <span className="text-slate-400 w-32 truncate font-mono text-xs">{p.col1}</span>
-                <span className="text-slate-600 text-xs">↔</span>
+                <span className="text-slate-600 text-xs">/</span>
                 <span className="text-slate-400 flex-1 truncate font-mono text-xs">{p.col2}</span>
                 <span
                   className={`font-bold tabular-nums ${

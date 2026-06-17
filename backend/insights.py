@@ -25,7 +25,7 @@ def generate_insights(analysis_result: dict) -> dict:
     cleaning = analysis_result["cleaning_report"]
 
     corr_text = "\n".join(
-        f"  - {p['col1']} ↔ {p['col2']}: r = {p['r']}" for p in top_corrs[:5]
+        f"  - {p['col1']} / {p['col2']}: r = {p['r']}" for p in top_corrs[:5]
     ) or "  (no numeric correlations found)"
 
     outlier_text = "\n".join(
@@ -50,7 +50,7 @@ def generate_insights(analysis_result: dict) -> dict:
     prompt = f"""You are a senior data analyst. A user uploaded a dataset and an automated EDA pipeline has processed it. Provide sharp, actionable insights.
 
 DATASET OVERVIEW
-- Shape: {summary['shape'][0]} rows × {summary['shape'][1]} columns
+- Shape: {summary['shape'][0]} rows x {summary['shape'][1]} columns
 - Column types:
 {dtype_summary}
 - Missing values: {missing_text}
@@ -65,10 +65,10 @@ OUTLIER DETECTION
 CHARTS GENERATED
 {charts_text}
 
-Write a structured analysis with the following sections. Be specific – use numbers and column names from the data above. Keep each section concise but insightful.
+Write a structured analysis with the following sections. Be specific - use numbers and column names from the data above. Keep each section concise but insightful.
 
 ## Key Findings
-3–5 bullet points about the most important patterns and statistics in this dataset.
+3-5 bullet points about the most important patterns and statistics in this dataset.
 
 ## Correlations & Relationships
 What do the correlations tell us? Which ones are strong, which are surprising?
@@ -77,7 +77,7 @@ What do the correlations tell us? Which ones are strong, which are surprising?
 Comment on missingness, outliers, and cleaning actions. Any caveats for interpretation?
 
 ## Business / Actionable Recommendations
-2–4 concrete recommendations based on the data patterns. Frame them for a business audience.
+2-4 concrete recommendations based on the data patterns. Frame them for a business audience.
 
 ## Final Conclusion
 One paragraph summarising the story this dataset tells and what to do next.

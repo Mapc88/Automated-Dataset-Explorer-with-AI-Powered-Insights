@@ -54,7 +54,7 @@ export default function InsightCard({ insights }) {
         </div>
       ) : (
         <div className="bg-slate-800 rounded-xl p-5 text-sm text-slate-400 italic border border-slate-700">
-          No AI insights available. Add your <code className="text-brand-400">ANTHROPIC_API_KEY</code> to the backend
+          No AI insights available. Add your <code className="text-brand-400">GEMINI_API_KEY</code> to the backend
           <code className="text-brand-400"> .env</code> file to enable this feature.
         </div>
       )}

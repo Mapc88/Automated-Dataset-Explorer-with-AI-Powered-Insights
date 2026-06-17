@@ -17,17 +17,25 @@ const DARK_LAYOUT = {
 function ChartCard({ fig, index }) {
   const [collapsed, setCollapsed] = useState(false);
 
-  const layout = {
-    ...DARK_LAYOUT,
-    ...(fig.layout || {}),
-    paper_bgcolor: DARK_LAYOUT.paper_bgcolor,
-    plot_bgcolor: DARK_LAYOUT.plot_bgcolor,
-    font: DARK_LAYOUT.font,
-    margin: DARK_LAYOUT.margin,
-    xaxis: { ...(fig.layout?.xaxis || {}), ...DARK_LAYOUT.xaxis },
-    yaxis: { ...(fig.layout?.yaxis || {}), ...DARK_LAYOUT.yaxis },
-    legend: DARK_LAYOUT.legend,
-  };
+  const isMap = Boolean(fig.layout?.mapbox);
+  const layout = isMap
+    ? {
+        ...(fig.layout || {}),
+        paper_bgcolor: DARK_LAYOUT.paper_bgcolor,
+        font: DARK_LAYOUT.font,
+        legend: DARK_LAYOUT.legend,
+      }
+    : {
+        ...DARK_LAYOUT,
+        ...(fig.layout || {}),
+        paper_bgcolor: DARK_LAYOUT.paper_bgcolor,
+        plot_bgcolor: DARK_LAYOUT.plot_bgcolor,
+        font: DARK_LAYOUT.font,
+        margin: DARK_LAYOUT.margin,
+        xaxis: { ...(fig.layout?.xaxis || {}), ...DARK_LAYOUT.xaxis },
+        yaxis: { ...(fig.layout?.yaxis || {}), ...DARK_LAYOUT.yaxis },
+        legend: DARK_LAYOUT.legend,
+      };
 
   const title = fig.layout?.title?.text || fig.layout?.title || `Chart ${index + 1}`;
 
@@ -50,7 +58,7 @@ function ChartCard({ fig, index }) {
           <Suspense
             fallback={
               <div className="flex items-center justify-center h-64 text-slate-500 text-sm">
-                Loading chart…
+                Loading chart...
               </div>
             }
           >

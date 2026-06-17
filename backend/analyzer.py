@@ -2,13 +2,10 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import json
 import warnings
 warnings.filterwarnings("ignore")
 
-
-# ── helpers ──────────────────────────────────────────────────────────────────
 
 def _fig_json(fig) -> dict:
     return json.loads(fig.to_json())
@@ -17,8 +14,6 @@ def _fig_json(fig) -> dict:
 def _safe_col(df: pd.DataFrame, col: str) -> pd.Series:
     return df[col].dropna()
 
-
-# ── type detection ────────────────────────────────────────────────────────────
 
 def _classify_columns(df: pd.DataFrame) -> dict[str, list[str]]:
     numeric, categorical, datetime_cols, text = [], [], [], []
@@ -31,10 +26,9 @@ def _classify_columns(df: pd.DataFrame) -> dict[str, list[str]]:
         if pd.api.types.is_numeric_dtype(series):
             numeric.append(col)
             continue
-        # try parsing as datetime
         if series.dtype == object:
             try:
-                parsed = pd.to_datetime(series, infer_datetime_format=True, errors="raise")
+                parsed = pd.to_datetime(series, errors="raise")
                 df[col] = parsed
                 datetime_cols.append(col)
                 continue
@@ -49,26 +43,20 @@ def _classify_columns(df: pd.DataFrame) -> dict[str, list[str]]:
     return {"numeric": numeric, "categorical": categorical, "datetime": datetime_cols, "text": text}
 
 
-# ── cleaning ──────────────────────────────────────────────────────────────────
-
 def clean_dataframe(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     original_shape = df.shape
     missing_before = int(df.isnull().sum().sum())
 
-    # drop fully empty rows / cols
     df = df.dropna(how="all").dropna(axis=1, how="all")
 
-    # strip whitespace from string columns
     for col in df.select_dtypes(include="object").columns:
         df[col] = df[col].str.strip()
         df[col] = df[col].replace("", np.nan)
 
-    # fill numeric nulls with median
     for col in df.select_dtypes(include="number").columns:
         if df[col].isnull().any():
             df[col] = df[col].fillna(df[col].median())
 
-    # fill categorical nulls with mode
     for col in df.select_dtypes(include="object").columns:
         if df[col].isnull().any():
             mode = df[col].mode()
@@ -85,8 +73,6 @@ def clean_dataframe(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     }
 
 
-# ── EDA summary ──────────────────────────────────────────────────────────────
-
 def build_summary(df: pd.DataFrame, col_types: dict) -> dict:
     desc = df.describe(include="all").replace({np.nan: None})
     missing = df.isnull().sum()
@@ -101,8 +87,6 @@ def build_summary(df: pd.DataFrame, col_types: dict) -> dict:
     }
 
 
-# ── correlation ───────────────────────────────────────────────────────────────
-
 def _top_correlations(df: pd.DataFrame, numeric_cols: list[str], n: int = 10) -> list[dict]:
     if len(numeric_cols) < 2:
         return []
@@ -114,8 +98,6 @@ def _top_correlations(df: pd.DataFrame, numeric_cols: list[str], n: int = 10) ->
     pairs.sort(key=lambda x: abs(x["r"]), reverse=True)
     return pairs[:n]
 
-
-# ── chart builders ────────────────────────────────────────────────────────────
 
 def _histogram(df, col) -> dict:
     fig = px.histogram(
@@ -134,7 +116,7 @@ def _boxplot(df, cols) -> dict:
     for col in cols:
         fig.add_trace(go.Box(y=_safe_col(df, col), name=col, boxmean=True))
     fig.update_layout(
-        title="Box Plots – Numeric Columns",
+        title="Box Plots - Numeric Columns",
         template="plotly_white",
         showlegend=True,
     )
@@ -146,7 +128,7 @@ def _bar_chart(df, col) -> dict:
     counts.columns = [col, "count"]
     fig = px.bar(
         counts, x=col, y="count",
-        title=f"Value Counts – {col}",
+        title=f"Value Counts - {col}",
         template="plotly_white",
         color="count",
         color_continuous_scale="Viridis",
@@ -159,7 +141,7 @@ def _pie_chart(df, col) -> dict:
     counts = df[col].value_counts().head(10)
     fig = px.pie(
         values=counts.values, names=counts.index,
-        title=f"Distribution – {col}",
+        title=f"Distribution - {col}",
         template="plotly_white",
         hole=0.35,
     )
@@ -224,7 +206,7 @@ def _violin_plot(df, numeric_cols, cat_col=None) -> dict:
         melted = df[cols_to_plot].melt(var_name="variable", value_name="value")
         fig = px.violin(melted, y="value", x="variable",
                         box=True, template="plotly_white",
-                        title="Violin Plot – Numeric Distributions",
+                        title="Violin Plot - Numeric Distributions",
                         color_discrete_sequence=["#6366f1"])
     return _fig_json(fig)
 
@@ -242,8 +224,6 @@ def _pairplot_sample(df, numeric_cols) -> dict:
     return _fig_json(fig)
 
 
-# ── outlier detection ─────────────────────────────────────────────────────────
-
 def _detect_outliers(df: pd.DataFrame, numeric_cols: list[str]) -> dict:
     results = {}
     for col in numeric_cols:
@@ -258,7 +238,84 @@ def _detect_outliers(df: pd.DataFrame, numeric_cols: list[str]) -> dict:
     return results
 
 
-# ── main entry point ──────────────────────────────────────────────────────────
+def _clustering(df, numeric_cols):
+    if len(numeric_cols) < 2:
+        return None, None
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.cluster import KMeans
+    from sklearn.decomposition import PCA
+    from sklearn.metrics import silhouette_score
+
+    data = df[numeric_cols].dropna()
+    if len(data) < 10:
+        return None, None
+
+    fit_data = data.sample(5000, random_state=42) if len(data) > 5000 else data
+    scaled = StandardScaler().fit_transform(fit_data)
+
+    best_k, best_score, best_labels = None, -1.0, None
+    max_k = min(5, len(fit_data) - 1)
+    for k in range(2, max_k + 1):
+        labels = KMeans(n_clusters=k, n_init=10, random_state=42).fit_predict(scaled)
+        if len(set(labels)) < 2:
+            continue
+        score = silhouette_score(scaled, labels)
+        if score > best_score:
+            best_k, best_score, best_labels = k, score, labels
+    if best_k is None:
+        return None, None
+
+    coords = PCA(n_components=2).fit_transform(scaled)
+    plot_df = pd.DataFrame({
+        "PC1": coords[:, 0],
+        "PC2": coords[:, 1],
+        "Cluster": [f"Cluster {c}" for c in best_labels],
+    })
+    fig = px.scatter(
+        plot_df, x="PC1", y="PC2", color="Cluster",
+        title=f"KMeans Clusters (k={best_k}, PCA projection)",
+        template="plotly_white",
+        opacity=0.7,
+    )
+    sizes = {f"Cluster {int(c)}": int((best_labels == c).sum()) for c in sorted(set(best_labels))}
+    meta = {"k": int(best_k), "silhouette": round(float(best_score), 3), "sizes": sizes}
+    return _fig_json(fig), meta
+
+
+def _detect_geo(df):
+    lat_names = {"lat", "latitude"}
+    lon_names = {"lon", "lng", "long", "longitude"}
+    lat_col = lon_col = None
+    for col in df.columns:
+        name = str(col).strip().lower()
+        if name in lat_names and pd.api.types.is_numeric_dtype(df[col]):
+            lat_col = col
+        elif name in lon_names and pd.api.types.is_numeric_dtype(df[col]):
+            lon_col = col
+    if lat_col is None or lon_col is None:
+        return None, None
+    lat_ok = df[lat_col].dropna().between(-90, 90).all()
+    lon_ok = df[lon_col].dropna().between(-180, 180).all()
+    if lat_ok and lon_ok:
+        return lat_col, lon_col
+    return None, None
+
+
+def _geo_map(df, lat, lon, color_col=None):
+    cols = [lat, lon] + ([color_col] if color_col else [])
+    data = df[cols].dropna(subset=[lat, lon])
+    if len(data) > 2000:
+        data = data.sample(2000, random_state=42)
+    fig = px.scatter_mapbox(
+        data, lat=lat, lon=lon,
+        color=color_col if color_col else None,
+        zoom=1, height=500,
+        mapbox_style="open-street-map",
+        title="Geographic Distribution",
+    )
+    fig.update_layout(margin={"r": 0, "t": 40, "l": 0, "b": 0})
+    return _fig_json(fig)
+
 
 def analyze(df: pd.DataFrame) -> dict:
     df, cleaning_report = clean_dataframe(df)
@@ -270,9 +327,8 @@ def analyze(df: pd.DataFrame) -> dict:
     datetime_cols = col_types["datetime"]
 
     charts = []
-    chart_meta = []  # titles for AI context
+    chart_meta = []  # chart labels
 
-    # ── numeric charts
     for col in numeric[:8]:
         charts.append(_histogram(df, col))
         chart_meta.append(f"Histogram: {col}")
@@ -291,7 +347,6 @@ def analyze(df: pd.DataFrame) -> dict:
             charts.append(_pairplot_sample(df, numeric))
             chart_meta.append("Pair plot")
 
-        # top correlated scatter plots
         top_corrs = _top_correlations(df, numeric, n=3)
         for pair in top_corrs:
             fig = _scatter_with_regression(df, pair["col1"], pair["col2"])
@@ -299,7 +354,6 @@ def analyze(df: pd.DataFrame) -> dict:
                 charts.append(fig)
                 chart_meta.append(f"Scatter: {pair['col1']} vs {pair['col2']} (r={pair['r']})")
 
-    # ── categorical charts
     for col in categorical[:6]:
         nunique = df[col].nunique()
         if nunique <= 8:
@@ -309,11 +363,23 @@ def analyze(df: pd.DataFrame) -> dict:
             charts.append(_bar_chart(df, col))
             chart_meta.append(f"Bar chart: {col}")
 
-    # ── time-series charts
     if datetime_cols and numeric:
         ts_charts = _time_series(df, datetime_cols[0], numeric[:4])
         charts.extend(ts_charts)
         chart_meta.extend([f"Time series: {c}" for c in numeric[:4]])
+
+    clusters = None
+    if len(numeric) >= 2:
+        cluster_fig, clusters = _clustering(df, numeric)
+        if cluster_fig:
+            charts.append(cluster_fig)
+            chart_meta.append(f"Cluster analysis (KMeans, k={clusters['k']})")
+
+    lat_col, lon_col = _detect_geo(df)
+    if lat_col and lon_col:
+        color_col = categorical[0] if categorical else None
+        charts.append(_geo_map(df, lat_col, lon_col, color_col))
+        chart_meta.append("Geographic map")
 
     top_corrs = _top_correlations(df, numeric)
     outliers = _detect_outliers(df, numeric)
@@ -323,6 +389,7 @@ def analyze(df: pd.DataFrame) -> dict:
         "summary": summary,
         "top_correlations": top_corrs,
         "outliers": outliers,
+        "clusters": clusters,
         "charts": charts,
         "chart_meta": chart_meta,
         "preview": json.loads(df.head(20).to_json(orient="records", date_format="iso")),
